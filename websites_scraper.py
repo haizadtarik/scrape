@@ -96,6 +96,33 @@ def search_the_edge(keyword):
     else:
         print(f"Failed to retrieve the page {url}. Status code: {response.status_code}")
 
+def search_world_oil(keyword):
+    keyword = keyword.replace(' ','%20')
+    df = pd.DataFrame(columns=['url', 'title', 'article'])
+    url = f"https://worldoil.com/search-results?q={keyword}&sort=relevance&range=1"
+    response = requests.get(url)
+    if response.status_code == 200:
+        # Parse with BeautifulSoup
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # Find the news articles
+        articles = soup.find_all('div', class_='topic-title')
+        urls = dict()
+        for article in articles:
+            urls[article.find('h2').get_text()] = article.find('a')['href']
+        for title,link in urls.items():
+            article_url = 'https://worldoil.com' + link
+            article_response = requests.get(article_url)
+            if article_response.status_code == 200:
+                soup2 = BeautifulSoup(article_response.content, 'html.parser')
+                article = soup2.find('div', class_='news-detail-content content-body')
+                if article:
+                    df = pd.concat([df, pd.DataFrame({'url': [article_url], 'title': [title], 'article': [article.get_text()]})])
+            else:
+                print(f"Failed to retrieve the page {article_url}. Status code: {article_response.status_code}")
+        df.to_csv(f'world_oil_{keyword}.csv', index=False)
+    else:
+        print(f"Failed to retrieve the page {url}. Status code: {response.status_code}")
+
 
 
 
